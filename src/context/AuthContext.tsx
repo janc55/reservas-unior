@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User as FirebaseUser, onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { UserProfile } from '../types';
 import { getUserProfile } from '../services/authService';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 interface AuthContextType {
   currentUser: FirebaseUser | null;
@@ -25,8 +26,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  const fetchProfile = async (uid: string) => {
-    const profile = await getUserProfile(uid);
+  const fetchProfile = async (uid: string, authUser?: FirebaseUser) => {
+    let profile = await getUserProfile(uid);
+    if (!profile && authUser) {
+      const basicProfile = {
+        email: authUser.email ?? '',
+        displayName: authUser.displayName ?? 'Usuario',
+        role: 'user' as const,
+        department: '',
+        phone: '',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      try {
+        await setDoc(doc(db, 'users', uid), basicProfile);
+      } catch { /* non-critical */ }
+      profile = { uid, ...basicProfile } as UserProfile;
+    }
     setUserProfile(profile);
   };
 
@@ -34,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
-        await fetchProfile(user.uid);
+        await fetchProfile(user.uid, user);
       } else {
         setUserProfile(null);
       }

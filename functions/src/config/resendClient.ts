@@ -12,12 +12,44 @@ interface ResendEmailOptions {
 }
 
 export async function sendEmail(options: ResendEmailOptions): Promise<void> {
-  const apiKey = functions.config().resend?.api_key;
-  const fromEmail = functions.config().resend?.from_email || 'noreply@unior.edu.bo';
-  const fromName = functions.config().resend?.from_name || 'UNIOR Auditorio';
+  // Read API Key from process.env (functions/.env) or functions.config()
+  let apiKey = process.env.RESEND_API_KEY;
+  try {
+    if (!apiKey) {
+      apiKey = functions.config().resend?.api_key || functions.config().resend?.key;
+    }
+  } catch (e) {
+    // functions.config() fallback
+  }
+
+  // Read From Email
+  let fromEmail = process.env.RESEND_FROM_EMAIL;
+  try {
+    if (!fromEmail) {
+      fromEmail = functions.config().resend?.from_email || functions.config().resend?.from;
+    }
+  } catch (e) {}
+
+  if (!fromEmail) {
+    fromEmail = 'onboarding@resend.dev';
+  }
+
+  // Read From Name
+  let fromName = process.env.RESEND_FROM_NAME;
+  try {
+    if (!fromName) {
+      fromName = functions.config().resend?.from_name || 'UNIOR Auditorio';
+    }
+  } catch (e) {}
+
+  if (!fromName) {
+    fromName = 'UNIOR Auditorio';
+  }
 
   if (!apiKey) {
-    throw new Error('Resend API key not configured. Run: firebase functions:config:set resend.api_key="YOUR_KEY"');
+    throw new Error(
+      'Resend API key not configured. Set RESEND_API_KEY in functions/.env or run: firebase functions:config:set resend.api_key="re_..." and re-deploy.'
+    );
   }
 
   const to = Array.isArray(options.to) ? options.to : [options.to];
@@ -44,10 +76,10 @@ export async function sendEmail(options: ResendEmailOptions): Promise<void> {
 
   if (!response.ok) {
     const error = await response.text();
-    console.error('Resend API error:', error);
-    throw new Error(`Failed to send email: ${error}`);
+    console.error('Resend API error response:', error);
+    throw new Error(`Failed to send email via Resend API (${response.status}): ${error}`);
   }
 
   const result = await response.json();
-  console.log('Email sent successfully:', result.id);
+  console.log('Email sent successfully via Resend API, id:', result.id);
 }

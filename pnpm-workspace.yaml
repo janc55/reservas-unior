@@ -1,4 +1,7 @@
-packages: []
-allowBuilds:
-  esbuild: set this to true or false
-  protobufjs: set this to true or false
+packages:
+  - '.'
+  - 'functions'
+
+onlyBuiltDependencies:
+  - esbuild
+  - protobufjs

@@ -27,8 +27,8 @@ service cloud.firestore {
     
     // Reservations collection
     match /reservations/{reservationId} {
-      // Anyone authenticated can read reservations
-      allow read: if request.auth != null;
+      // Anyone can read approved reservations (public availability), authenticated users can read all
+      allow read: if resource.data.status == 'approved' || request.auth != null;
       
       // Authenticated users can create reservations for themselves
       allow create: if request.auth != null && 

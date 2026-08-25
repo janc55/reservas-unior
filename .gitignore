@@ -37,3 +37,5 @@ npm-debug.log*
 # Agent config
 .agents/
 .claude/
+
+guion_video.md
