@@ -1,0 +1,71 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users collection
+    match /users/{userId} {
+      // Anyone can read their own profile
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Admins can read all user profiles
+      allow read: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      
+      // Users can create their own profile during registration
+      allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // Users can update their own profile (not role)
+      allow update: if request.auth != null && 
+        request.auth.uid == userId &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']);
+      
+      // Admins can update any user profile including role
+      allow update: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Reservations collection
+    match /reservations/{reservationId} {
+      // Anyone authenticated can read reservations
+      allow read: if request.auth != null;
+      
+      // Authenticated users can create reservations for themselves
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid;
+      
+      // Users can update their own reservations (cancel only)
+      allow update: if request.auth != null && 
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.status == 'cancelled' &&
+        resource.data.status in ['pending', 'approved'];
+      
+      // Admins can update any reservation (approve/reject)
+      allow update: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Equipment collection
+    match /equipment/{equipmentId} {
+      // Anyone can read equipment catalog
+      allow read: if true;
+      
+      // Only admins can create, update, or delete equipment
+      allow create, update, delete: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Daily Reports collection
+    match /dailyReports/{reportId} {
+      // Only admins can read daily reports
+      allow read: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      
+      // Only admin SDK can create daily reports (via Cloud Functions)
+      allow create: if false;
+      
+      // No updates or deletes allowed
+      allow update, delete: if false;
+    }
+  }
+}

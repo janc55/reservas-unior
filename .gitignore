@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+functions/node_modules/
+
+# Build output
+dist/
+lib/
+functions/lib/
+
+# Environment variables (secrets)
+.env
+.env.*
+!.env.example
+functions/.env
+
+# Firebase
+.firebase/
+.firebaserc
+firebase-debug.log
+firebase-debug.*.log
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+
+# Logs
+*.log
+npm-debug.log*

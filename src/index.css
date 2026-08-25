@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --unior-navy: #0f2b5c;
+    --unior-navy-light: #1a3c7e;
+    --unior-gold: #d4af37;
+    --unior-gold-hover: #b89628;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+.unior-gradient {
+  background: linear-gradient(135deg, #0f2b5c 0%, #1a3c7e 50%, #0d2146 100%);
+}
+
+.unior-gold-gradient {
+  background: linear-gradient(135deg, #d4af37 0%, #f3e5ab 50%, #b89628 100%);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.glass-card-dark {
+  background: rgba(15, 43, 92, 0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}

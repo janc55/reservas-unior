@@ -1,0 +1,23 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Reports folder - only admins can read, only Cloud Functions can write
+    match /reports/{fileName} {
+      // Anyone authenticated can read reports
+      allow read: if request.auth != null;
+      
+      // Only admin SDK can write (via Cloud Functions)
+      allow write: if false;
+      
+      // No deletes allowed
+      allow delete: if false;
+    }
+    
+    // Default rule - deny all access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
