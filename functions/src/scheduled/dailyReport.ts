@@ -81,7 +81,7 @@ export const generateDailyReport = functions.pubsub
         expires: '2030-01-01',
       });
 
-      const adminEmails = functions.config().admin?.emails?.split(',') || [];
+      const adminEmails = (process.env.ADMIN_REPORT_EMAILS || '').split(',').filter(Boolean);
 
       if (adminEmails.length > 0) {
         const emailData = getDailyReportEmail({

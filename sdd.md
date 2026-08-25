@@ -48,17 +48,17 @@ El MVP no incluirá:
 ┌──────────────────────────────────────────────────────────────┐
 │                         FIREBASE                             │
 │                                                              │
-│  Firebase Auth     Firestore       Firebase Storage            │
-│  (usuarios)        (datos)         (reportes PDF)              │
+│  Firebase Auth     Firestore       Firebase Storage          │
+│  (usuarios)        (datos)         (reportes PDF)            │
 │                                                              │
-│              Firebase Cloud Functions                         │
-│       validaciones, correos, PDF y tareas programadas          │
+│              Firebase Cloud Functions                        │
+│       validaciones, correos, PDF y tareas programadas        │
 └──────────────────────────────┬───────────────────────────────┘
                                │ SMTP
                                ▼
 ┌──────────────────────────────────────────────────────────────┐
 │                    SERVICIO DE CORREO                        │
-│              Nodemailer con servidor SMTP                     │
+│                         Resend                               │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -327,7 +327,7 @@ exports.reminderChecker = functions.pubsub
 
 ### Sprint 5: notificaciones y reportes 
 
-- [ ] Configurar Nodemailer y SMTP mediante secretos.
+- [ ] Configurar Resend mediante secretos.
 - [ ] Implementar correos de solicitud, aprobación y rechazo.
 - [ ] Generar el reporte diario en PDF.
 - [ ] Implementar el recordatorio programado.

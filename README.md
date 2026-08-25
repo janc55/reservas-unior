@@ -1,192 +1,176 @@
-# Sistema de Gestión de Reservas del Auditorio - UNIOR
+# Sistema de Gestión de Reservas del Auditorio — UNIOR
 
-Plataforma web oficial para la gestión, control de disponibilidad y reserva del Auditorio de la **Universidad Privada de Oruro (UNIOR)**.
+Aplicación web para consultar la disponibilidad y gestionar las reservas del Auditorio de la Universidad Privada de Oruro (UNIOR).
 
----
+## Entrega
 
-## 1. El Problema y a Quién Afecta
+- Repositorio público: [github.com/janc55/reservas-unior](https://github.com/janc55/reservas-unior)
+- Aplicación publicada en Firebase: [reservasunior.web.app](https://reservasunior.web.app)
+- Video de presentación: pendiente de agregar el enlace de la entrega.
 
-### El Problema
-La Universidad Privada de Oruro gestionaba las solicitudes del auditorio mediante un **registro manual en cuaderno de papel**. Este proceso tradicional generaba graves inconvenientes operacionales:
-- **Solapamiento y conflictos de horario:** Varias facultades o departamentos reservaban el mismo espacio en el mismo horario.
-- **Falta de visibilidad de disponibilidad:** Los solicitantes debían desplazarse físicamente a la administración para consultar si el auditorio estaba libre.
-- **Descontrol en equipamiento:** Pérdida de inventario y solicitudes que superaban la disponibilidad real de proyectores, micrófonos o sistemas de sonido.
-- **Inexistencia de notificaciones:** Los solicitantes no recibían confirmación o motivo de rechazo formal de sus solicitudes.
+## 1. Problema y personas afectadas
 
-### A Quién Afecta
-- **Solicitantes (Docentes, Estudiantes, Directivos de Carrera y Personal Administrativo):** Dificultad para coordinar eventos académicos y culturales sin certeza de disponibilidad.
-- **Administradores del Auditorio:** Carga de trabajo manual, falta de trazabilidad en las decisiones y dificultad para consolidar reportes diarios de uso.
+La reserva del auditorio se realizaba mediante un cuaderno físico. Este proceso no daba visibilidad inmediata de la disponibilidad, podía producir reservas superpuestas, dificultaba el control de equipos y no dejaba una confirmación formal al solicitante.
 
----
+El problema afecta a docentes, estudiantes, directivos de carrera y personal administrativo que organizan actividades académicas o culturales. También afecta a la administración del auditorio, que debe revisar solicitudes, controlar recursos y comunicar sus decisiones manualmente.
 
-## 2. Alcance del Proyecto
+La aplicación centraliza ese proceso: muestra la disponibilidad sin exponer datos personales, registra las solicitudes y permite que un administrador las apruebe o rechace con trazabilidad.
 
-### Lo que INCLUYE el MVP
-- **Autenticación y Perfiles:** Registro, inicio de sesión, recuperación de contraseña y perfiles con control de acceso por roles (`user` solicitante y `admin`).
-- **Disponibilidad Pública:** Grilla interactiva de horarios ocupados/disponibles por fecha sin requerir autenticación y protegiendo los datos personales de los solicitantes.
-- **Solicitud de Reservas:** Formulario con selección de datos del evento, rango de horas (`HH:MM`) en fecha futura y reserva de equipamiento con control de cantidad.
-- **Validación de Dominio:** Detección estricta de solapamientos (`nuevoInicio < existFin AND nuevoFin > existInicio`) en frontend y backend transaccional.
-- **Panel de Administración:** Revisión de solicitudes pendientes, aprobación y rechazo con notas administrativas, e historial con filtros.
-- **Gestión de Equipamiento:** CRUD de inventario de recursos del auditorio.
-- **Notificaciones por Correo:** Envío automático de notificaciones vía **Resend API** al crear, aprobar o rechazar reservas, más recordatorio automático 15 minutos antes.
-- **Reporte Diario en PDF:** Generación automatizada a las 7:00 a. m. (`America/La_Paz`) con **PDFKit**, subida a **Firebase Storage** y envío por correo a los administradores.
+## 2. Alcance
 
-### Lo que NO INCLUYE el MVP (Fuera de Alcance)
-- Integración con mensajería instantánea (WhatsApp, Telegram).
-- Pasarela de cobros o pagos.
-- Reservas recurrentes (ej. todos los lunes del semestre).
-- Gestión de múltiples auditorios o recintos universitarios.
-- Aplicación móvil nativa (iOS / Android).
+### Incluye
 
----
+- Registro, inicio de sesión, recuperación de contraseña y control de roles (`user` y `admin`).
+- Consulta pública de horarios ocupados y disponibles por fecha.
+- Creación de solicitudes para fechas futuras, con rango horario y selección de equipamiento.
+- Validación de cruces de horario mediante la condición `nuevoInicio < finExistente && nuevoFin > inicioExistente`.
+- Panel de administración para aprobar o rechazar solicitudes, añadir notas y consultar el historial.
+- CRUD de equipamiento del auditorio.
+- Correos al crear, aprobar o rechazar una reserva y recordatorio previo al evento.
+- Reporte diario en PDF, almacenado en Firebase Storage y enviado a los administradores.
 
-## 3. Diagrama de Arquitectura
+### No incluye
 
-El sistema utiliza una arquitectura **Serverless de dos capas**, ejecutando componentes específicos en el cliente, en el edge de Vercel y en la infraestructura administrada de Firebase.
+- Pagos, cobros o facturación.
+- Reservas recurrentes.
+- Múltiples auditorios o recintos.
+- Integración con WhatsApp, Telegram u otra mensajería instantánea.
+- Aplicación móvil nativa para iOS o Android.
+
+## 3. Arquitectura
 
 ```text
-┌────────────────────────────────────────────────────────────────────────┐
-│                          CLIENTE (Navegador)                           │
-│                React 18 + Vite + TypeScript + Tailwind CSS             │
-│                                                                        │
-│   [Vista Pública]        [Vista Solicitante]       [Panel Admin]       │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ HTTPS / Firebase Web SDK
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                        BACKEND (Firebase Cloud)                        │
-│                                                                        │
-│  Firebase Auth       Cloud Firestore         Firebase Storage          │
-│  (Usuarios/Roles)    (Reservas/Equipos)      (Reportes PDF)            │
-│                                                                        │
-│                       Firebase Cloud Functions                         │
-│               (Node.js 20 - Triggers & Cloud Scheduler)                │
-└───────────────────┬────────────────────────────────┬───────────────────┘
-                    │ API REST HTTP                  │ PDFKit
-                    ▼                                ▼
-┌──────────────────────────────────────┐  ┌──────────────────────────────┐
-│           SERVICIO DE EMAIL          │  │       REPORTE DIARIO         │
-│             Resend Email API         │  │   PDF guardado en Storage    │
-└──────────────────────────────────────┘  └──────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│ Cliente: navegador                                            │
+│ React + TypeScript + Vite + Tailwind CSS                      │
+│ Disponibilidad pública | solicitudes | panel administrativo   │
+└───────────────────────────┬──────────────────────────────────┘
+                            │ HTTPS / Firebase Web SDK
+                            ▼
+┌──────────────────────────────────────────────────────────────┐
+│ Firebase Hosting                                               │
+│ Distribuye la SPA compilada (CDN y HTTPS)                     │
+└───────────────────────────┬──────────────────────────────────┘
+                            │
+                            ▼
+┌──────────────────────────────────────────────────────────────┐
+│ Firebase                                                       │
+│ Auth: identidad y sesión       Firestore: usuarios, reservas  │
+│ Storage: reportes PDF          Security Rules: autorización    │
+└───────────────────────────┬──────────────────────────────────┘
+                            │ eventos, tareas y Admin SDK
+                            ▼
+┌──────────────────────────────────────────────────────────────┐
+│ Cloud Functions (Node.js 20)                                  │
+│ Notificaciones, recordatorios, validaciones y reporte diario  │
+└─────────────────────┬─────────────────────────┬──────────────┘
+                      │ HTTPS                   │ Cloud Scheduler
+                      ▼                         ▼
+              Resend Email API          PDFKit → Firebase Storage
 ```
 
-### Ejecución de Piezas
-- **Frontend SPA:** Ejecutado en el **Navegador Web del Usuario** y distribuido mediante la red CDN Edge de **Vercel**.
-- **Autenticación & Base de Datos:** **Firebase Auth** y **Cloud Firestore** ejecutados en los servidores administrados de Google Firebase.
-- **Lógica Backend & Triggers:** **Firebase Cloud Functions** (Node.js 20), re-validando transacciones y disparando eventos.
-- **Notificaciones:** **Resend API**, ejecutado vía llamadas HTTPS REST desde las Cloud Functions.
-- **Tareas Programadas:** **Cloud Scheduler** ejecutando cron jobs bajo la zona horaria `America/La_Paz`.
+El frontend se ejecuta en el navegador y se publica en Firebase Hosting. Firebase Authentication, Firestore y Storage se ejecutan como servicios administrados de Firebase. Cloud Functions ejecuta la lógica de servidor, los disparadores y tareas programadas; Resend entrega los correos transaccionales.
 
----
+## 4. Decisiones tecnológicas
 
-## 4. Justificación de Tecnologías y Alternativas Descartadas
-
-| Componente | Tecnología Seleccionada | Alternativa Descartada | Motivo de la Decisión |
+| Componente | Tecnología elegida | Alternativa descartada | Motivo |
 | --- | --- | --- | --- |
-| **Frontend Core** | **React 18 + TypeScript** | Angular / Vue.js | Ecosistema maduro, manejo eficiente de estado con Hooks y tipado estricto para evitar errores en tiempo de compilación. |
-| **Build Tool** | **Vite** | Create React App / Webpack | Tiempos de compilación e inicialización significativamente más rápidos (HMR instantáneo). |
-| **Estilos CSS** | **Tailwind CSS v4** | CSS Puro / Bootstrap | Desarrollo ágil de interfaces responsive, adaptadas visualmente a la identidad institucional de UNIOR. |
-| **Plataforma Backend** | **Firebase (Auth/Firestore)** | Supabase / AWS Lambda + DynamoDB | Integración nativa entre autenticación, base de datos en tiempo real y seguridad basada en reglas. |
-| **Servidor de Correo** | **Resend API** | Nodemailer + Server SMTP | Entrega inmediata por API REST de alta disponibilidad, sin necesidad de mantener un servidor SMTP propio ni exponer credenciales. |
-| **Generador de PDF** | **PDFKit** | Puppeteer / jsPDF | Generación de documentos PDF nativa y ligera en Node.js sin sobrecarga de navegadores headless. |
-| **Hosting Frontend** | **Vercel** | Firebase Hosting tradicional | Despliegue continuo instantáneo (CI/CD), excelente soporte para SPA Vite y CDN global. |
-| **Gestor de Paquetes** | **pnpm** | npm / yarn | Instalación ultrarrápida, ahorro de espacio en disco mediante enlace simbiótico y control estricto de lockfile. |
+| Interfaz | React 18 + TypeScript | Angular / Vue | Ecosistema maduro, componentes reutilizables y tipado para reducir errores. |
+| Construcción | Vite | Create React App / Webpack | Inicio y recarga en desarrollo más rápidos, con configuración ligera. |
+| Estilos | Tailwind CSS | Bootstrap / CSS tradicional | Permite una interfaz responsive e iteración visual rápida sin imponer un tema. |
+| Backend | Firebase Auth, Firestore, Storage y Functions | Supabase / AWS Lambda + DynamoDB | Integra autenticación, datos, reglas y funciones serverless en una única plataforma. |
+| Hosting | Firebase Hosting | Vercel / Netlify | Cumple el requisito de publicación en Firebase y se integra con el mismo proyecto y sus despliegues. |
+| Correo | Resend API | SMTP propio con Nodemailer | Evita mantener infraestructura SMTP y permite el envío por API desde Functions. |
+| PDF | PDFKit | Puppeteer / jsPDF | Genera el reporte en Node.js sin navegador headless ni sobrecarga adicional. |
+| Dependencias | pnpm | npm / Yarn | Lockfile estricto y uso eficiente de espacio en disco. |
 
----
+## 5. Recorrido de la aplicación
 
-## 🛠️ Herramientas y Código de Terceros Utilizados
+1. Abrir la [aplicación publicada](https://reservasunior.web.app) y consultar la disponibilidad pública.
+2. Iniciar sesión o crear una cuenta de solicitante.
+3. Crear una solicitud indicando actividad, fecha, horario y equipos requeridos.
+4. La solicitud queda pendiente; el solicitante puede verla en **Mis reservas**.
+5. Iniciar sesión con el rol administrador y abrir el panel **Administración**.
+6. Revisar la solicitud, aprobarla o rechazarla con una nota. El sistema actualiza el estado y envía la notificación correspondiente.
+7. Comprobar el resultado en la disponibilidad pública y en el historial administrativo.
 
-- **[React 18](https://react.dev/):** Librería para la construcción de interfaces de usuario.
-- **[Vite](https://vitejs.dev/):** Entorno de desarrollo y empaquetador frontend.
-- **[TypeScript](https://www.typescriptlang.org/):** Lenguaje tipado estricto.
-- **[Tailwind CSS](https://tailwindcss.com/):** Framework CSS utilitario.
-- **[Lucide React](https://lucide.dev/):** Conjunto de iconos vectoriales para UI.
-- **[React Router DOM v6](https://reactrouter.com/):** Enrutamiento declarativo del lado del cliente.
-- **[Firebase SDK](https://firebase.google.com/):** Módulos web de Auth, Firestore y Storage.
-- **[Resend API Node SDK](https://resend.com/):** Servicio de correo electrónico transaccional.
-- **[PDFKit](https://pdfkit.org/):** Generador de documentos PDF para Node.js.
-- **[date-fns / date-fns-tz](https://date-fns.org/):** Utilidades para formateo y manejo de zonas horarias (`America/La_Paz`).
+### Acceso para revisión docente
 
----
+Use estas credenciales únicamente para revisar el panel administrativo de la aplicación publicada:
 
-## 🚀 Instrucciones para Ejecutar el Proyecto
+| Campo | Valor |
+| --- | --- |
+| Correo | `adminreservas@unior.edu.bo` |
+| Contraseña | `Admin123` |
+| Rol | `admin` |
 
-### Prerrequisitos
-- **Node.js:** Versión 18 o superior.
-- **pnpm:** Versión 8 o superior (`npm i -g pnpm`).
-- **Firebase CLI:** Opcional para despliegue (`npm i -g firebase-tools`).
+> Por tratarse de una cuenta de demostración publicada en el repositorio, la contraseña debe cambiarse o eliminarse después de la evaluación.
 
-### 1. Clonar e Instalar Dependencias
+## 6. Herramientas y código de terceros
+
+- [React](https://react.dev/) y [React Router](https://reactrouter.com/): interfaz y navegación de la SPA.
+- [Vite](https://vite.dev/) y [TypeScript](https://www.typescriptlang.org/): compilación y tipado.
+- [Tailwind CSS](https://tailwindcss.com/): estilos.
+- [Lucide React](https://lucide.dev/): iconos.
+- [Firebase Web SDK](https://firebase.google.com/docs/web/setup): Auth, Firestore y Storage en el cliente.
+- [Firebase Cloud Functions](https://firebase.google.com/docs/functions): lógica de servidor y tareas programadas.
+- [Resend](https://resend.com/): correo transaccional.
+- [PDFKit](https://pdfkit.org/): creación del reporte diario en PDF.
+- [date-fns](https://date-fns.org/) y [date-fns-tz](https://github.com/marnusw/date-fns-tz): fechas y zona horaria `America/La_Paz`.
+
+## Instrucciones de ejecución local
+
+### Requisitos
+
+- Node.js 18 o superior (las Cloud Functions usan Node.js 20).
+- pnpm 8 o superior.
+- Firebase CLI, solo para emuladores o despliegue.
+
+### Instalación
 
 ```bash
-# Clonar el repositorio
-git clone <URL_DEL_REPOSITORIO>
-cd reservas
-
-# Instalar dependencias del frontend usando únicamente pnpm
+git clone https://github.com/janc55/reservas-unior.git
+cd reservas-unior
 pnpm install
-
-# Instalar dependencias de Cloud Functions
 cd functions
 pnpm install
 cd ..
 ```
 
-### 2. Configurar Variables de Entorno
+### Variables de entorno del frontend
 
-Crea un archivo `.env.local` en la raíz del proyecto basándote en `.env.example`:
+Copie `.env.example` como `.env.local` y complete las variables públicas de su proyecto Firebase:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Rellena las variables con tus credenciales de Firebase Console:
-
 ```env
-VITE_FIREBASE_API_KEY=AIzaSy...
-VITE_FIREBASE_AUTH_DOMAIN=reservasunior.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=reservasunior
-VITE_FIREBASE_STORAGE_BUCKET=reservasunior.firebasestorage.app
-VITE_FIREBASE_MESSAGING_SENDER_ID=815154401826
-VITE_FIREBASE_APP_ID=1:815154401826:web:...
-VITE_FIREBASE_MEASUREMENT_ID=G-48Z0YS6W7X
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+VITE_FIREBASE_MEASUREMENT_ID=...
 ```
 
-Para las Cloud Functions, configura la API Key de Resend mediante Firebase CLI o variables de entorno:
+Para los correos, configure las credenciales de Resend exclusivamente en el entorno de Cloud Functions; nunca use variables con prefijo `VITE_` para secretos.
+
+### Desarrollo y comprobaciones
 
 ```bash
-firebase functions:config:set \
-  resend.api_key="re_123456789..." \
-  resend.from_email="auditorio@unior.edu.bo" \
-  resend.from_name="Auditorio UNIOR" \
-  admin.emails="admin@unior.edu.bo"
+pnpm dev       # http://localhost:5173
+pnpm lint      # verificación de tipos
+pnpm build     # compilación de producción en dist/
 ```
 
-### 3. Ejecutar en Modo Desarrollo
+Para desplegar en Firebase, primero compile el frontend y las funciones y luego ejecute el despliegue con Firebase CLI en un proyecto configurado:
 
 ```bash
-# Servidor de desarrollo local del frontend (Vite en http://localhost:3000)
-pnpm dev
-```
-
-### 4. Compilación y Calidad
-
-```bash
-# Verificación de tipos con TypeScript
-pnpm lint
-
-# Compilación para producción (generará la carpeta dist/)
 pnpm build
+cd functions
+pnpm build
+cd ..
+firebase deploy
 ```
-
----
-
-## 👥 Roles de Usuario e Inicialización del Administrador
-
-- **`user` (Solicitante):** Puede consultar disponibilidad pública, crear solicitudes de reserva, seleccionar equipamiento y cancelar sus propias solicitudes.
-- **`admin` (Administrador):** Acceso completo al panel administrativo (`/admin`), revisión, aprobación/rechazo de solicitudes, notas administrativas y CRUD de equipamiento.
-
-### Crear el Primer Administrador
-1. Registra un nuevo usuario desde el formulario `/register`.
-2. Dirígete a **Firebase Console** > **Firestore Database** > Colección `users`.
-3. Selecciona el documento de tu usuario (`uid`) y modifica el campo `role` de `"user"` a `"admin"`.
